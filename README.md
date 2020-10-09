@@ -3,6 +3,7 @@
 imcf-adaptation of Myosoft, a Fiji script that identifies muscle fibers in images of sections
 
 original publication: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0229041
+
 original code: https://github.com/Hyojung-Choo/Myosoft/tree/Myosoft-hub
 
 
