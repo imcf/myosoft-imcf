@@ -351,6 +351,24 @@ def save_all_rois(rm, target):
     rm.runCommand("Save", target)
 
 
+def save_selected_rois( rm, selected_rois, target ):
+    """save selected ROIs in the RoiManager as zip to target path
+
+    Parameters
+    ----------
+    rm : RoiManager
+        a reference of the IJ-RoiManager
+    selected_rois : array
+        ROIs in the RoiManager to save
+    target : string
+        the path in to store the ROIs. e.g. /my-images/resulting_rois_subset.zip
+    """
+    rm.runCommand("Deselect")
+    rm.setSelectedIndexes(selected_rois)
+    rm.runCommand("save selected", target)
+    rm.runCommand("Deselect")
+
+
 def enlarge_all_rois( amount_in_um, rm, pixel_size_in_um ):
     """enlarges all ROIs in the RoiManager by x scaled units
 
@@ -548,17 +566,20 @@ if fiber_channel > 0:
         min_fiber_intensity = get_threshold_from_method(raw, fiber_channel, "Mean")[0]
         IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
 
+    change_all_roi_color(rm, "blue")
     positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
     change_subset_roi_color(rm, positive_fibers, "magenta")
     save_selected_rois( rm, positive_fibers, output_dir + "mhc_positive_fiber_rois.zip")
-    change_all_roi_color(rm, "blue")
 
 # measure size & shape, save
 IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decimal=4")
 IJ.run("Clear Results", "")
 measure_in_all_rois( raw, membrane_channel, rm )
-preset_results_column( rt, "MHC Positive Fibers (magenta)", "NO" )
-add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
+
+if fiber_channel > 0:
+    preset_results_column( rt, "MHC Positive Fibers (magenta)", "NO" )
+    add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
+
 rt.save(output_dir + "all_fibers_results.csv")
 
 # dress up the original image, save a overlay-png, present original to the user
