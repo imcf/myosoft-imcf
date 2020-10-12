@@ -40,6 +40,8 @@ import os
 #@ Float (label="ROI expansion [microns]", value=1) enlarge
 #@ String (visibility=MESSAGE, value="<html><b> channel positions in the hyperstack </b></html>") msg5
 #@ Integer (label="Membrane staining channel number", style="slider", min=1, max=5, value=1) membrane_channel
+#@ Integer (label="Fiber staining (MHC) channel number (0=skip)", style="slider", min=0, max=5, value=3) fiber_channel
+#@ Integer (label="minimum fiber intensity (0=auto)", description="0 = automatic threshold detection", value=0) min_fiber_intensity
 #@ Integer (label="sub-tiling to economize RAM", style="slider", min=1, max=8, value=4) tiling_factor
 #@ ResultsTable rt
 #@ RoiManager rm
@@ -141,6 +143,33 @@ def preprocess_membrane_channel(imp):
     IJ.run(imp, "8-bit", "") 
     IJ.run(imp, "Invert", "")
     IJ.run(imp, "Convolve...", "text1=[-1.0 -1.0 -1.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 0\n-1.0 -1.0 24.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 0] normalize")
+
+
+def get_threshold_from_method(imp, channel, method):
+    """returns the threshold value of chosen IJ AutoThreshold method in desired channel
+
+    Parameters
+    ----------
+    imp : ImagePlus
+        the imp from which to get the threshold value
+    channel : integer
+        the channel in which to get the treshold
+    method : string
+        the AutoThreshold method to use
+
+    Returns
+    -------
+    list
+        the upper and the lower threshold (integer values)
+    """
+    imp.setC(channel) # starts at 1
+    ip = imp.getProcessor()
+    ip.setAutoThreshold(method + " dark")
+    lower_thr = ip.getMinThreshold()
+    upper_thr = ip.getMaxThreshold()
+    ip.resetThreshold()
+
+    return lower_thr, upper_thr
 
 
 def apply_weka_model(model_path, imp, tiles_per_dim):
@@ -261,6 +290,40 @@ def measure_in_all_rois( imp, channel, rm ):
     rm.runCommand(imp,"Measure")
 
 
+def change_all_roi_color( rm, color ):
+    """change the color of all ROIs in the RoiManager
+
+    Parameters
+    ----------
+    rm : RoiManager
+        a reference of the IJ-RoiManager
+    color : string
+        the desired color. e.g. "green", "red", "yellow", "magenta" ...
+    """
+    number_of_rois = rm.getCount()
+    for roi in range( number_of_rois ):
+        rm.select(roi)
+        rm.runCommand("Set Color", color)
+
+
+def change_subset_roi_color( rm, selected_rois, color ):
+    """change the color of selected ROIs in the RoiManager
+
+    Parameters
+    ----------
+    rm : RoiManager
+        a reference of the IJ-RoiManager
+    selected_rois : array
+        ROIs in the RoiManager to change
+    color : string
+        the desired color. e.g. "green", "red", "yellow", "magenta" ...
+    """
+    rm.runCommand("Deselect")
+    rm.setSelectedIndexes(selected_rois)
+    rm.runCommand("Set Color", color)
+    rm.runCommand("Deselect")
+
+
 def show_all_rois_on_image(rm, imp):
     """shows all ROIs in the ROiManager on imp
 
@@ -306,6 +369,76 @@ def enlarge_all_rois( amount_in_um, rm, pixel_size_in_um ):
     for roi in all_rois:
         enlarged_roi = RoiEnlarger.enlarge(roi, amount_px)
         rm.addRoi(enlarged_roi)
+
+
+def select_positive_fibers( imp, channel, rm, min_intensity ):
+    """For all ROIs in the RoiManager, select ROIs based on intensity measurement in given channel of imp.
+    See https://imagej.nih.gov/ij/developer/api/ij/process/ImageStatistics.html
+
+    Parameters
+    ----------
+    imp : ImagePlus
+        the imp on which to measure
+    channel : integer
+        the channel on which to measure. starts at 1
+    rm : RoiManager
+        a reference of the IJ-RoiManager
+    min_intensity : integer
+        the selection criterion (here: intensity threshold)
+    
+    Returns
+    -------
+    array
+        a selection of ROIs which passed the selection criterion (are above the threshold)
+    """
+    imp.setC(channel)
+    all_rois = rm.getRoisAsArray()
+    selected_rois = []
+    for i, roi in enumerate(all_rois):
+        imp.setRoi(roi)
+        stats = imp.getStatistics()
+        if stats.mean > min_intensity:
+            selected_rois.append(i)
+
+    return selected_rois 
+
+
+def preset_results_column( rt, column, value):
+    """pre-set all rows in given column of the IJ-ResultsTable with desired value
+
+    Parameters
+    ----------
+    rt : ResultsTable
+        a reference of the IJ-ResultsTable
+    column : string
+        the desired column. will be created if it does not yet exist
+    value : string or float or integer
+        the value to be set
+    """
+    for i in range( rt.size() ):
+        rt.setValue(column, i, value)
+
+    rt.show("Results")
+
+
+def add_results( rt, column, row, value ):
+    """adds a value in desired rows of a given column
+
+    Parameters
+    ----------
+    rt : ResultsTable
+        a reference of the IJ-ResultsTable
+    column : string
+        the column in which to add the values
+    row : array
+        the row numbers in which too add the values.
+    value : string or float or integer
+        the value to be set
+    """
+    for i in range( len( row ) ):
+        rt.setValue(column, row[i], value)
+
+    rt.show("Results")
 
 
 def enhance_contrast( imp ):
@@ -409,10 +542,23 @@ enlarge_all_rois( enlarge, rm, raw_image_calibration.pixelWidth )
 renumber_rois(rm)
 save_all_rois( rm, output_dir + "all_fiber_rois.zip" )
 
+# check for positive fibers
+if fiber_channel > 0:
+    if min_fiber_intensity == 0:
+        min_fiber_intensity = get_threshold_from_method(raw, fiber_channel, "Mean")[0]
+        IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
+
+    positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
+    change_subset_roi_color(rm, positive_fibers, "magenta")
+    save_selected_rois( rm, positive_fibers, output_dir + "mhc_positive_fiber_rois.zip")
+    change_all_roi_color(rm, "blue")
+
 # measure size & shape, save
 IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decimal=4")
 IJ.run("Clear Results", "")
 measure_in_all_rois( raw, membrane_channel, rm )
+preset_results_column( rt, "MHC Positive Fibers (magenta)", "NO" )
+add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
 rt.save(output_dir + "all_fibers_results.csv")
 
 # dress up the original image, save a overlay-png, present original to the user
