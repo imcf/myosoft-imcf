@@ -118,17 +118,6 @@ def fix_BF_czi_imagetitle(imp):
     return image_title
 
 
-def clear_ij_roi_manager(rm):
-    """delete all ROIs from the RoiManager
-
-    Parameters
-    ----------
-    rm : RoiManager
-        a reference of the IJ-RoiManager
-    """
-    rm.runCommand('reset')
-
-
 def preprocess_membrane_channel(imp):
     """apply myosoft pre-processing steps for the membrane channel
 
