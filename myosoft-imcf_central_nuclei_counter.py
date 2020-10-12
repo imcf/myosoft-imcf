@@ -24,9 +24,7 @@ import os
 #@ Float (label="ROI Shrinking factor", value=0.7) shrink
 #@ String (visibility=MESSAGE, value="<html><b> channel positions in the hyperstack </b></html>") msg5
 #@ Integer (label="Nucleus staining channel number", style="slider", min=1, max=5, value=3) nucleus_channel
-#@ Integer (label="Fiber staining (MHC) channel number", style="slider", min=1, max=5, value=3) fiber_channel
 #@ Integer (label="minimum nucleus intensity (0=auto)", description="0 = automatic threshold detection", value=0) min_nucleus_intensity
-#@ Integer (label="minimum fiber intensity (0=auto)", description="0 = automatic threshold detection", value=0) min_fiber_intensity
 #@ ResultsTable rt
 #@ RoiManager rm
 
@@ -157,22 +155,6 @@ def measure_in_all_rois( imp, channel, rm ):
     rm.runCommand(imp,"Measure")
 
 
-def change_all_roi_color( rm, color ):
-    """change the color of all ROIs in the RoiManager
-
-    Parameters
-    ----------
-    rm : RoiManager
-        a reference of the IJ-RoiManager
-    color : string
-        the desired color. e.g. "green", "red", "yellow", "magenta" ...
-    """
-    number_of_rois = rm.getCount()
-    for roi in range( number_of_rois ):
-        rm.select(roi)
-        rm.runCommand("Set Color", color)
-
-
 def change_subset_roi_color( rm, selected_rois, color ):
     """change the color of selected ROIs in the RoiManager
 
@@ -285,38 +267,6 @@ def select_central_nuclei( imp, channel, rm, min_intensity ):
     return selected_rois
 
 
-def select_positive_fibers( imp, channel, rm, min_intensity ):
-    """For all ROIs in the RoiManager, select ROIs based on intensity measurement in given channel of imp.
-    See https://imagej.nih.gov/ij/developer/api/ij/process/ImageStatistics.html
-
-    Parameters
-    ----------
-    imp : ImagePlus
-        the imp on which to measure
-    channel : integer
-        the channel on which to measure. starts at 1
-    rm : RoiManager
-        a reference of the IJ-RoiManager
-    min_intensity : integer
-        the selection criterion (here: intensity threshold)
-    
-    Returns
-    -------
-    array
-        a selection of ROIs which passed the selection criterion (are above the threshold)
-    """
-    imp.setC(channel)
-    all_rois = rm.getRoisAsArray()
-    selected_rois = []
-    for i, roi in enumerate(all_rois):
-        imp.setRoi(roi)
-        stats = imp.getStatistics()
-        if stats.mean > min_intensity:
-            selected_rois.append(i)
-
-    return selected_rois 
-
-
 def open_rois_from_zip( rm, path ):
     """open RoiManager ROIs from zip and adds them to the RoiManager
 
@@ -423,10 +373,12 @@ raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
 output_dir = os.path.dirname(str(roi_zip))
+input_roi_zip = os.path.basename(str(roi_zip))
 output_dir = fix_ij_dirs(output_dir)
+input_rois_path = output_dir + input_roi_zip
 
 # open ROIS and show on image
-open_rois_from_zip( rm, output_dir + "all_fiber_rois.zip" )
+open_rois_from_zip( rm, input_rois_path )
 show_all_rois_on_image( rm, raw )
 
 # update the log for the user
@@ -435,16 +387,8 @@ if raw_image_calibration.scaled() == False:
     IJ.log("Your image is not spatially calibrated! Size measurements are only possible in [px].")
 IJ.log( " -- settings used -- ")
 IJ.log( "ROI Shrinking factor = " + str(shrink) )
-IJ.log( "Selected fiber-ROIs zip-file = " + str(roi_zip) )
+IJ.log( "Selected fiber-ROIs zip-file = " + str(input_rois_path) )
 IJ.log( " -- settings used -- ")
-
-# check for positive fibers 
-if min_fiber_intensity == 0:
-    min_fiber_intensity = get_threshold_from_method(raw, fiber_channel, "Mean")[0]
-    IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
-
-positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
-save_selected_rois( rm, positive_fibers, output_dir + "mhc_positive_fiber_rois.zip")
 
 # shrink ROIs and look for nuclei
 rm.hide()
@@ -460,19 +404,14 @@ if min_nucleus_intensity == 0:
 central_nuclei_fibers = select_central_nuclei( raw, nucleus_channel, rm, min_nucleus_intensity )
 save_selected_rois( rm, central_nuclei_fibers, output_dir + "central_nuclei_fiber_rois.zip")
 clear_ij_roi_manager(rm)
-open_rois_from_zip( rm, output_dir + "all_fiber_rois.zip" )
-change_all_roi_color(rm, "blue")
-positive_fibers_with_central_nucleus = list( set(positive_fibers).intersection(central_nuclei_fibers) )
-change_subset_roi_color(rm, positive_fibers, "magenta")
-change_subset_roi_color(rm, positive_fibers_with_central_nucleus, "yellow")
+open_rois_from_zip( rm, input_rois_path )
+change_subset_roi_color(rm, central_nuclei_fibers, "yellow")
 save_all_rois( rm, output_dir + "all_fiber_rois_central_nuclei_color-coded.zip" )
 
 # measure size & shape, add column for pos nuclei and fiber findings, save
 IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decimal=4")
 IJ.run("Clear Results", "")
 measure_in_all_rois( raw, nucleus_channel, rm )
-preset_results_column( rt, "MHC Positive Fibers (magenta)", "NO" )
-add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
 preset_results_column( rt, "Centralized Nuclei (yellow)" , "NO" )
 add_results( rt, "Centralized Nuclei (yellow)", central_nuclei_fibers, "YES")
 rt.save(output_dir + "centralized_nuclei_results.csv")
