@@ -24,7 +24,7 @@ def fix_ij_dirs(path):
     """
 
     fixed_path = str(path).replace("\\", "/")
-    fixed_path = fixed_path + "/"
+    # fixed_path = fixed_path + "/"
 
     return fixed_path
 
@@ -164,7 +164,10 @@ def show_all_rois_on_image(rm, imp):
     rm.runCommand(imp,"Show All")
 
 
-output_dir = fix_ij_dirs(output_dir)
+output_dir = fix_ij_dirs(output_dir) + "/3_manual_rerun/"
+if not os.path.exists( output_dir ):
+    os.makedirs( output_dir )
+
 rt.reset()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 renumber_rois(rm)

@@ -19,6 +19,7 @@ import os
 #@ String (visibility=MESSAGE, value="<html><b> Welcome to Myosoft - centralized nuclei counter! </b></html>") msg1
 #@ File (label="Select fiber-ROIs zip-file", style="file") roi_zip
 #@ File (label="Select image file", description="select your image") path_to_image
+#@ File (label="Select directory for output", style="directory") output_dir
 #@ Boolean (label="close image after processing", description="tick this box when using batch mode", value=False) close_raw
 #@ String (visibility=MESSAGE, value="<html><b> shrink ROIs to find nuclei </b></html>") msg3
 #@ Float (label="ROI Shrinking factor", value=0.7) shrink
@@ -62,7 +63,7 @@ def fix_ij_dirs(path):
     """
 
     fixed_path = str(path).replace("\\", "/")
-    fixed_path = fixed_path + "/"
+    # fixed_path = fixed_path + "/"
 
     return fixed_path
 
@@ -372,10 +373,11 @@ raw_image_calibration = raw.getCalibration()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
-output_dir = os.path.dirname(str(roi_zip))
-input_roi_zip = os.path.basename(str(roi_zip))
-output_dir = fix_ij_dirs(output_dir)
-input_rois_path = output_dir + input_roi_zip
+input_rois_path = fix_ij_dirs( roi_zip )
+output_dir = fix_ij_dirs(output_dir) + "/2a_central_nuclei_counter/"
+
+if not os.path.exists( output_dir ):
+    os.makedirs( output_dir )
 
 # open ROIS and show on image
 open_rois_from_zip( rm, input_rois_path )

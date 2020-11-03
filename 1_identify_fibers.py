@@ -502,12 +502,11 @@ raw_image_calibration = raw.getCalibration()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
-output_dir = fix_ij_dirs(output_dir)
+output_dir = fix_ij_dirs(output_dir) + str(raw_image_title) + "/1_identify_fibers/"
 
-if not os.path.exists( str(output_dir + raw_image_title) ):
-    os.makedirs( str(output_dir + raw_image_title) )
+if not os.path.exists( output_dir ):
+    os.makedirs( output_dir )
 
-output_dir = str( output_dir + raw_image_title ) + "/"
 classifiers_dir = fix_ij_dirs(classifiers_dir)
 primary_model = classifiers_dir + "primary.model"
 secondary_model = classifiers_dir + "secondary_central_nuclei.model"
@@ -525,6 +524,8 @@ IJ.log( "solidity = " + str(minSol) + "-" + str(maxSol) )
 IJ.log( "feret_ar = " + str(minFAR) + "-" + str(maxFAR) )
 IJ.log( "min_feret = " + str(minMinFer) + "-" + str(maxMinFer) )
 IJ.log( "ROI expansion [microns] = " + str(enlarge) )
+IJ.log( "Membrane channel = " + str(membrane_channel) )
+IJ.log( "MHC positive fiber channel = " + str(fiber_channel) )
 IJ.log( "sub-tiling = " + str(tiling_factor) )
 IJ.log( " -- settings used -- ")
 

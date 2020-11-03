@@ -19,6 +19,7 @@ import os
 #@ String (visibility=MESSAGE, value="<html><b> Welcome to Myosoft! </b></html>") msg1
 #@ File (label="Select fiber-ROIs zip-file", style="file") roi_zip
 #@ File (label="Select image file", description="select your image") path_to_image
+#@ File (label="Select directory for output", style="directory") output_dir
 #@ Boolean (label="close image after processing", description="tick this box when using batch mode", value=False) close_raw
 #@ String (visibility=MESSAGE, value="<html><b> channel positions in the hyperstack </b></html>") msg5
 #@ Integer (label="Fiber staining 1 channel number (0=n.a.)", style="slider", min=0, max=5, value=1) fiber_channel_1
@@ -64,7 +65,7 @@ def fix_ij_dirs(path):
     """
 
     fixed_path = str(path).replace("\\", "/")
-    fixed_path = fixed_path + "/"
+    # fixed_path = fixed_path + "/"
 
     return fixed_path
 
@@ -373,11 +374,17 @@ raw_image_calibration = raw.getCalibration()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
-output_dir = os.path.dirname(str(roi_zip))
-output_dir = fix_ij_dirs(output_dir)
+# output_dir = os.path.dirname(str(roi_zip))
+# output_dir = fix_ij_dirs(output_dir)
+
+input_rois_path = fix_ij_dirs( roi_zip )
+output_dir = fix_ij_dirs(output_dir) + "/2b_fibertyping/"
+
+if not os.path.exists( output_dir ):
+    os.makedirs( output_dir )
 
 # open ROIS and show on image
-open_rois_from_zip( rm, str(roi_zip) )
+open_rois_from_zip( rm, str(input_rois_path) )
 change_all_roi_color(rm, "blue")
 show_all_rois_on_image( rm, raw )
 
@@ -386,7 +393,7 @@ IJ.log( "Now working on " + str(raw_image_title) )
 if raw_image_calibration.scaled() == False:
     IJ.log("Your image is not spatially calibrated! Size measurements are only possible in [px].")
 IJ.log( " -- settings used -- ")
-IJ.log( "Selected fiber-ROIs zip-file = " + str(roi_zip) )
+IJ.log( "Selected fiber-ROIs zip-file = " + str(input_rois_path) )
 IJ.log( "Fiber staining 1 channel number = " + str(fiber_channel_1) )
 IJ.log( "Fiber staining 2 channel number = " + str(fiber_channel_2) )
 IJ.log( "Fiber staining 3 channel number = " + str(fiber_channel_3) )
@@ -397,7 +404,7 @@ IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decima
 IJ.run("Clear Results", "")
 measure_in_all_rois( raw, fiber_channel_1, rm )
 
-# loop trhough the fiber channels, check if positive, add info to results table
+# loop through the fiber channels, check if positive, add info to results table
 all_fiber_channels = [fiber_channel_1, fiber_channel_2, fiber_channel_3]
 all_min_fiber_intensities = [min_fiber_intensity_1, min_fiber_intensity_2, min_fiber_intensity_3]
 roi_colors = ["green", "orange", "red"]
