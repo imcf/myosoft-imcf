@@ -20,7 +20,6 @@ import os
 #@ File (label="Select fiber-ROIs zip-file", style="file") roi_zip
 #@ File (label="Select image file", description="select your image") path_to_image
 #@ File (label="Select directory for output", style="directory") output_dir
-#@ Boolean (label="close image after processing", description="tick this box when using batch mode", value=False) close_raw
 #@ String (visibility=MESSAGE, value="<html><b> shrink ROIs to find nuclei </b></html>") msg3
 #@ Float (label="ROI Shrinking factor", value=0.7) shrink
 #@ String (visibility=MESSAGE, value="<html><b> channel positions in the hyperstack </b></html>") msg5
@@ -400,14 +399,15 @@ renumber_rois(rm)
 save_all_rois( rm, output_dir + "all_fiber_rois_shrunk.zip" )
 
 if min_nucleus_intensity == 0:
-    min_nucleus_intensity = 0.524 * get_threshold_from_method(raw, nucleus_channel, "Default")[0] # relax he threshold by 50%.  TODO check with markus' image
-    IJ.log( "nucleus intensity threshold: " + str(min_nucleus_intensity) ) 
+    min_nucleus_intensity = 0.524 * get_threshold_from_method(raw, nucleus_channel, "Default")[0] # relax he threshold by 50%
+    IJ.log( "automatic intensity threshold detection: True" )
 
+IJ.log( "nucleus intensity threshold: " + str(min_nucleus_intensity) )
 central_nuclei_fibers = select_central_nuclei( raw, nucleus_channel, rm, min_nucleus_intensity )
-save_selected_rois( rm, central_nuclei_fibers, output_dir + "central_nuclei_fiber_rois.zip")
 clear_ij_roi_manager(rm)
 open_rois_from_zip( rm, input_rois_path )
 change_subset_roi_color(rm, central_nuclei_fibers, "yellow")
+save_selected_rois( rm, central_nuclei_fibers, output_dir + "central_nuclei_fiber_rois.zip")
 save_all_rois( rm, output_dir + "all_fiber_rois_central_nuclei_color-coded.zip" )
 
 # measure size & shape, add column for pos nuclei and fiber findings, save
@@ -437,5 +437,3 @@ IJ.log("total time in minutes: " + str(total_execution_time_min))
 IJ.log( "~~ all done ~~" )
 IJ.selectWindow("Log")
 IJ.saveAs("Text", str(output_dir + raw_image_title + "_centralized_nuclei_Log"))
-if close_raw == True:
-    raw.close()
