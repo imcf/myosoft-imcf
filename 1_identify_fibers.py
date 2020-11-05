@@ -554,8 +554,9 @@ save_all_rois( rm, output_dir + "all_fiber_rois.zip" )
 if fiber_channel > 0:
     if min_fiber_intensity == 0:
         min_fiber_intensity = get_threshold_from_method(raw, fiber_channel, "Mean")[0]
-        IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
-
+        IJ.log( "automatic intensity threshold detection: True" )
+        
+    IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
     change_all_roi_color(rm, "blue")
     positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
     change_subset_roi_color(rm, positive_fibers, "magenta")
