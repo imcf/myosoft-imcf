@@ -378,7 +378,7 @@ raw_image_title = fix_BF_czi_imagetitle(raw)
 # output_dir = fix_ij_dirs(output_dir)
 
 input_rois_path = fix_ij_dirs( roi_zip )
-output_dir = fix_ij_dirs(output_dir) + "/2b_fibertyping/"
+output_dir = fix_ij_dirs(output_dir) + "/2c_fibertyping/"
 
 if not os.path.exists( output_dir ):
     os.makedirs( output_dir )

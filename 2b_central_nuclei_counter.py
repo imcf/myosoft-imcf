@@ -373,7 +373,7 @@ raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
 input_rois_path = fix_ij_dirs( roi_zip )
-output_dir = fix_ij_dirs(output_dir) + "/2a_central_nuclei_counter/"
+output_dir = fix_ij_dirs(output_dir) + "/2b_central_nuclei_counter/"
 
 if not os.path.exists( output_dir ):
     os.makedirs( output_dir )
