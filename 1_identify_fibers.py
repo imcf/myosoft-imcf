@@ -1,4 +1,4 @@
-# this is a python rewrite of the original ijm published at 
+# this is a python rewrite of the original ijm published at
 # https://github.com/Hyojung-Choo/Myosoft/blob/Myosoft-hub/Scripts/central%20nuclei%20counter.ijm
 
 # IJ imports
@@ -7,6 +7,7 @@ from ij import IJ, WindowManager as wm
 from ij.plugin import Duplicator, RoiEnlarger, RoiScaler
 from trainableSegmentation import WekaSegmentation
 from de.biovoxxel.toolbox import Extended_Particle_Analyzer
+from ij.measure import ResultsTable
 
 # Bio-formats imports
 from loci.plugins import BF
@@ -43,8 +44,9 @@ import os
 #@ Integer (label="Fiber staining (MHC) channel number (0=skip)", style="slider", min=0, max=5, value=3) fiber_channel
 #@ Integer (label="minimum fiber intensity (0=auto)", description="0 = automatic threshold detection", value=0) min_fiber_intensity
 #@ Integer (label="sub-tiling to economize RAM", style="slider", min=1, max=8, value=4) tiling_factor
-#@ ResultsTable rt
+
 #@ RoiManager rm
+#@ ResultsTable rt
 
 
 def fix_ij_options():
@@ -129,7 +131,7 @@ def preprocess_membrane_channel(imp):
     IJ.run(imp, "Enhance Contrast", "saturated=0.35")
     IJ.run(imp, "Apply LUT", "")
     IJ.run(imp, "Enhance Contrast", "saturated=1")
-    IJ.run(imp, "8-bit", "") 
+    IJ.run(imp, "8-bit", "")
     IJ.run(imp, "Invert", "")
     IJ.run(imp, "Convolve...", "text1=[-1.0 -1.0 -1.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 0\n-1.0 -1.0 24.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 -1.0\n-1.0 -1.0 -1.0 -1.0 0] normalize")
 
@@ -167,7 +169,7 @@ def apply_weka_model(model_path, imp, tiles_per_dim):
     Parameters
     ----------
     model_path : string
-        path to the model file 
+        path to the model file
     imp : ImagePlus
         ImagePlus to apply the model to
     tiles_per_dim : integer
@@ -181,7 +183,7 @@ def apply_weka_model(model_path, imp, tiles_per_dim):
     segmentator = WekaSegmentation()
     segmentator.loadClassifier( model_path )
     result = segmentator.applyClassifier( imp, [tiles_per_dim, tiles_per_dim], 0, True ) #ImagePlus imp, int[x,y,z] tilesPerDim, int numThreads (0=all), boolean probabilityMaps
-    
+
     return result
 
 
@@ -197,7 +199,7 @@ def process_weka_result(imp):
     IJ.run(imp, "8-bit", "")
     IJ.run(imp, "Median...", "radius=3")
     IJ.run(imp, "Gaussian Blur...", "sigma=2")
-    IJ.run(imp, "Auto Threshold", "method=MaxEntropy") 
+    IJ.run(imp, "Auto Threshold", "method=MaxEntropy")
     IJ.run(imp, "Invert", "")
 
 
@@ -216,7 +218,7 @@ def delete_channel(imp, channel_number):
 
 
 def run_extended_particle_analyzer( imp, eda_parameters ):
-    """identifies ROIs in target imp using the extended particle analyzer of the BioVoxxel toolbox 
+    """identifies ROIs in target imp using the extended particle analyzer of the BioVoxxel toolbox
     with given parameters
 
     Parameters
@@ -229,7 +231,7 @@ def run_extended_particle_analyzer( imp, eda_parameters ):
     epa = Extended_Particle_Analyzer()
     epa.readInputImageParameters(imp)
     epa.setDefaultParameterFields()
-    
+
     # expose all parameters explicitly
     epa.usePixel = False
     epa.usePixelForOutput = False
@@ -257,7 +259,7 @@ def run_extended_particle_analyzer( imp, eda_parameters ):
     epa.AddToManager = True
     epa.ExcludeEdges = False
     epa.IncludeHoles = False
-    
+
     epa.defineParticleAnalyzers()
     epa.particleAnalysis( imp.getProcessor(), imp, imp.getTitle() )
 
@@ -392,7 +394,7 @@ def select_positive_fibers( imp, channel, rm, min_intensity ):
         a reference of the IJ-RoiManager
     min_intensity : integer
         the selection criterion (here: intensity threshold)
-    
+
     Returns
     -------
     array
@@ -407,7 +409,7 @@ def select_positive_fibers( imp, channel, rm, min_intensity ):
         if stats.mean > min_intensity:
             selected_rois.append(i)
 
-    return selected_rois 
+    return selected_rois
 
 
 def preset_results_column( rt, column, value):
@@ -491,7 +493,10 @@ def setup_defined_ij(rm, rt):
 
 
 execution_start_time = time.time()
+
 setup_defined_ij(rm, rt)
+
+print rt.size()
 
 # open image using Bio-Formats
 path_to_image = fix_ij_dirs(path_to_image)
@@ -555,8 +560,8 @@ if fiber_channel > 0:
     if min_fiber_intensity == 0:
         min_fiber_intensity = get_threshold_from_method(raw, fiber_channel, "Mean")[0]
         IJ.log( "automatic intensity threshold detection: True" )
-        
-    IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) ) 
+
+    IJ.log( "fiber intensity threshold: " + str(min_fiber_intensity) )
     change_all_roi_color(rm, "blue")
     positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
     change_subset_roi_color(rm, positive_fibers, "magenta")
@@ -567,12 +572,19 @@ IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decima
 IJ.run("Clear Results", "")
 measure_in_all_rois( raw, membrane_channel, rm )
 
+rt = ResultsTable.getResultsTable("Results")
+
+print rt.size()
+
 if fiber_channel > 0:
+    print rt.size()
     preset_results_column( rt, "MHC Positive Fibers (magenta)", "NO" )
+    print rt.size()
     add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
+    print rt.size()
 
 rt.save(output_dir + "all_fibers_results.csv")
-
+print "saved the all_fibers_results.csv"
 # dress up the original image, save a overlay-png, present original to the user
 rm.show()
 raw.show()
