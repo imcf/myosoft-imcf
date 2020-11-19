@@ -261,7 +261,7 @@ def select_central_nuclei( imp, channel, rm, min_intensity ):
     for i, roi in enumerate(all_rois):
         imp.setRoi(roi)
         stats = imp.getStatistics()
-        if stats.stdDev > 250 and stats.max > min_intensity:
+        if stats.max > min_intensity:
             selected_rois.append(i)
 
     return selected_rois
@@ -399,7 +399,7 @@ renumber_rois(rm)
 save_all_rois( rm, output_dir + "all_fiber_rois_shrunk.zip" )
 
 if min_nucleus_intensity == 0:
-    min_nucleus_intensity = 0.524 * get_threshold_from_method(raw, nucleus_channel, "Default")[0] # relax he threshold by 50%
+    min_nucleus_intensity = get_threshold_from_method(raw, nucleus_channel, "Mean")[0]
     IJ.log( "automatic intensity threshold detection: True" )
 
 IJ.log( "nucleus intensity threshold: " + str(min_nucleus_intensity) )
