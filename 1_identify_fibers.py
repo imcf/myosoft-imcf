@@ -82,7 +82,7 @@ def fix_ij_dirs(path):
     """
 
     fixed_path = str(path).replace("\\", "/")
-    fixed_path = fixed_path + "/"
+    # fixed_path = fixed_path + "/"
 
     return fixed_path
 
@@ -110,7 +110,7 @@ def open_image_with_BF(path_to_file):
 
 
 def fix_BF_czi_imagetitle(imp):
-    image_title = os.path.basename( imp.getTitle() )
+    image_title = os.path.basename( imp.getShortTitle() )
     image_title = image_title.replace(".czi", "")
     image_title = image_title.replace(" ", "_")
     image_title = image_title.replace("_-_", "")
@@ -505,16 +505,18 @@ raw = open_image_with_BF(path_to_image)
 # get image info
 raw_image_calibration = raw.getCalibration()
 raw_image_title = fix_BF_czi_imagetitle(raw)
+print("raw image title: ", str(raw_image_title))
 
 # take care of paths and directories
-output_dir = fix_ij_dirs(output_dir) + str(raw_image_title) + "/1_identify_fibers/"
+output_dir = fix_ij_dirs(output_dir) + "/" + str(raw_image_title) + "/1_identify_fibers"
+print("output_dir: ", str(output_dir))
 
-if not os.path.exists( output_dir ):
-    os.makedirs( output_dir )
+if not os.path.exists( str(output_dir) ):
+    os.makedirs( str(output_dir) )
 
 classifiers_dir = fix_ij_dirs(classifiers_dir)
-primary_model = classifiers_dir + "primary.model"
-secondary_model = classifiers_dir + "secondary_central_nuclei.model"
+primary_model = classifiers_dir + "/" + "primary.model"
+secondary_model = classifiers_dir + "/" + "secondary_central_nuclei.model"
 
 # update the log for the user
 IJ.log( "Now working on " + str(raw_image_title) )
@@ -543,7 +545,7 @@ weka_result2 = apply_weka_model(secondary_model, weka_result1, tiling_factor )
 delete_channel(weka_result2, 1)
 weka_result2.setCalibration(raw_image_calibration)
 process_weka_result(weka_result2)
-IJ.saveAs(weka_result2, "Tiff", output_dir + raw_image_title + "_all_fibers_binary")
+IJ.saveAs(weka_result2, "Tiff", output_dir + "/" + raw_image_title + "_all_fibers_binary")
 eda_parameters = [minAr, maxAr, minPer, maxPer, minCir, maxCir, minRnd, maxRnd, minSol, maxSol, minFAR, maxFAR, minMinFer, maxMinFer]
 raw.show() # EPA will not work if no image is shown
 run_extended_particle_analyzer(weka_result2, eda_parameters)
@@ -553,7 +555,7 @@ rm.hide()
 raw.hide()
 enlarge_all_rois( enlarge, rm, raw_image_calibration.pixelWidth )
 renumber_rois(rm)
-save_all_rois( rm, output_dir + "all_fiber_rois.zip" )
+save_all_rois( rm, output_dir + "/" + raw_image_title + "_all_fiber_rois.zip" )
 
 # check for positive fibers
 if fiber_channel > 0:
@@ -565,7 +567,7 @@ if fiber_channel > 0:
     change_all_roi_color(rm, "blue")
     positive_fibers = select_positive_fibers( raw, fiber_channel, rm, min_fiber_intensity  )
     change_subset_roi_color(rm, positive_fibers, "magenta")
-    save_selected_rois( rm, positive_fibers, output_dir + "mhc_positive_fiber_rois.zip")
+    save_selected_rois( rm, positive_fibers, output_dir + "/" + raw_image_title + "_mhc_positive_fiber_rois.zip")
 
 # measure size & shape, save
 IJ.run("Set Measurements...", "area perimeter shape feret's redirect=None decimal=4")
@@ -583,7 +585,7 @@ if fiber_channel > 0:
     add_results( rt, "MHC Positive Fibers (magenta)", positive_fibers, "YES")
     print rt.size()
 
-rt.save(output_dir + "all_fibers_results.csv")
+rt.save(output_dir + "/" + raw_image_title + "_all_fibers_results.csv")
 print "saved the all_fibers_results.csv"
 # dress up the original image, save a overlay-png, present original to the user
 rm.show()
@@ -593,7 +595,7 @@ raw.setDisplayMode(IJ.COMPOSITE)
 enhance_contrast( raw )
 IJ.run("From ROI Manager", "") # ROIs -> overlays so they show up in the saved png
 qc_duplicate = raw.duplicate()
-IJ.saveAs(qc_duplicate, "PNG", output_dir + raw_image_title + "_all_fibers")
+IJ.saveAs(qc_duplicate, "PNG", output_dir + "/" + raw_image_title + "_all_fibers")
 qc_duplicate.close()
 wm.toFront( raw.getWindow() )
 IJ.run("Remove Overlay", "")
@@ -603,6 +605,6 @@ total_execution_time_min = (time.time() - execution_start_time) / 60.0
 IJ.log("total time in minutes: " + str(total_execution_time_min))
 IJ.log( "~~ all done ~~" )
 IJ.selectWindow("Log")
-IJ.saveAs("Text", str(output_dir + raw_image_title + "_all_fibers_Log"))
+IJ.saveAs("Text", str(output_dir + "/" + raw_image_title + "_all_fibers_Log"))
 if close_raw == True:
     raw.close()
