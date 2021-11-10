@@ -30,7 +30,7 @@ def fix_ij_dirs(path):
 
 
 def fix_BF_czi_imagetitle(imp):
-    image_title = os.path.basename( imp.getTitle() )
+    image_title = os.path.basename( imp.getShortTitle() )
     image_title = image_title.replace(".czi", "")
     image_title = image_title.replace(" ", "_")
     image_title = image_title.replace("_-_", "")
@@ -164,19 +164,19 @@ def show_all_rois_on_image(rm, imp):
     rm.runCommand(imp,"Show All")
 
 
-output_dir = fix_ij_dirs(output_dir) + "/3_manual_rerun/"
-if not os.path.exists( output_dir ):
-    os.makedirs( output_dir )
+output_dir = fix_ij_dirs(output_dir) + "/3_manual_rerun"
+if not os.path.exists( str(output_dir) ):
+    os.makedirs( str(output_dir) )
 
 rt.reset()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 renumber_rois(rm)
-save_all_rois( rm, output_dir + "manual_rerun_all_fiber_rois_color-coded.zip" )
+save_all_rois( rm, output_dir + "/" + raw_image_title + "_manual_rerun_all_fiber_rois_color-coded.zip" )
 roi_colors = extract_color_of_all_rois(rm)
 WaitForUserDialog("Choose measurements", "Set measurements in Analyze > Set Measurements, then click OK").show()
 measure_in_all_rois(raw, measurement_channel, rm)
 add_results_to_resultstable(rt, "ROI color", roi_colors )
-rt.save(output_dir + "manual_rerun_results.csv")
+rt.save(output_dir + "/" + raw_image_title + "_manual_rerun_results.csv")
 
 # dress up the original image, save a overlay-png, present original to the user
 raw.show()
@@ -185,7 +185,7 @@ raw.setDisplayMode(IJ.COMPOSITE)
 enhance_contrast( raw )
 IJ.run("From ROI Manager", "") # ROIs -> overlays so they show up in the saved png
 qc_duplicate = raw.duplicate()
-IJ.saveAs(qc_duplicate, "PNG", output_dir + raw_image_title + "_manual_rerun")
+IJ.saveAs(qc_duplicate, "PNG", output_dir + "/" + raw_image_title + "_manual_rerun")
 qc_duplicate.close()
 wm.toFront( raw.getWindow() )
 IJ.run("Remove Overlay", "")

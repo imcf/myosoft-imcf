@@ -93,7 +93,7 @@ def open_image_with_BF(path_to_file):
 
 
 def fix_BF_czi_imagetitle(imp):
-    image_title = os.path.basename( imp.getTitle() )
+    image_title = os.path.basename( imp.getShortTitle() )
     image_title = image_title.replace(".czi", "")
     image_title = image_title.replace(" ", "_")
     image_title = image_title.replace("_-_", "")
@@ -374,14 +374,11 @@ raw_image_calibration = raw.getCalibration()
 raw_image_title = fix_BF_czi_imagetitle(raw)
 
 # take care of paths and directories
-# output_dir = os.path.dirname(str(roi_zip))
-# output_dir = fix_ij_dirs(output_dir)
-
 input_rois_path = fix_ij_dirs( roi_zip )
-output_dir = fix_ij_dirs(output_dir) + "/2c_fibertyping/"
+output_dir = fix_ij_dirs(output_dir) + "/2c_fibertyping"
 
-if not os.path.exists( output_dir ):
-    os.makedirs( output_dir )
+if not os.path.exists( str(output_dir) ):
+    os.makedirs( str(output_dir) )
 
 # open ROIS and show on image
 open_rois_from_zip( rm, str(input_rois_path) )
@@ -420,7 +417,7 @@ for index, fiber_channel in enumerate(all_fiber_channels):
         all_fiber_subsets[index] = positive_fibers
         if len(positive_fibers) > 0:
             change_subset_roi_color(rm, positive_fibers, roi_colors[index])
-            save_selected_rois( rm, positive_fibers, output_dir + "positive_fiber_rois_c" + str( fiber_channel ) + ".zip")
+            save_selected_rois( rm, positive_fibers, output_dir + "/" + raw_image_title + "_positive_fiber_rois_c" + str( fiber_channel ) + ".zip")
             add_results( rt, "channel " + str(fiber_channel) + " positive (" + roi_colors[fiber_channel-1] + ")", positive_fibers, "YES")
 
 # single positive
@@ -438,30 +435,30 @@ positive_c1_c2_c3 = list( set(positive_c1_c2).intersection(all_fiber_subsets[2])
 if len(positive_c1_c2) > 0:
     preset_results_column( rt, "channel 1,2 positive (magenta)", "NO" )
     change_subset_roi_color(rm, positive_c1_c2, "magenta")
-    save_selected_rois( rm, positive_c1_c2, output_dir + "positive_fiber_rois_c1_c2.zip")
+    save_selected_rois( rm, positive_c1_c2, output_dir + "/" + raw_image_title + "_positive_fiber_rois_c1_c2.zip")
     add_results( rt, "channel 1,2 positive (magenta)", positive_c1_c2, "YES")
 
 if len(positive_c1_c3) > 0:
     preset_results_column( rt, "channel 1,3 positive (yellow)", "NO" )
     change_subset_roi_color(rm, positive_c1_c3, "yellow")
-    save_selected_rois( rm, positive_c1_c3, output_dir + "positive_fiber_rois_c1_c3.zip")
+    save_selected_rois( rm, positive_c1_c3, output_dir + "/" + raw_image_title + "_positive_fiber_rois_c1_c3.zip")
     add_results( rt, "channel 1,3 positive (yellow)", positive_c1_c3, "YES")
 
 if len(positive_c2_c3) > 0:
     preset_results_column( rt, "channel 2,3 positive (cyan)", "NO" )
     change_subset_roi_color(rm, positive_c2_c3, "cyan")
-    save_selected_rois( rm, positive_c2_c3, output_dir + "positive_fiber_rois_c2_c3.zip")
+    save_selected_rois( rm, positive_c2_c3, output_dir + "/" + raw_image_title + "_positive_fiber_rois_c2_c3.zip")
     add_results( rt, "channel 2,3 positive (cyan)", positive_c2_c3, "YES")
 
 if len(positive_c1_c2_c3) > 0:
     preset_results_column( rt, "channel 1,2,3 positive (white)", "NO" )
     change_subset_roi_color(rm, positive_c1_c2_c3, "white")
-    save_selected_rois( rm, positive_c1_c2_c3, output_dir + "positive_fiber_rois_c1_c2_c3.zip")
+    save_selected_rois( rm, positive_c1_c2_c3, output_dir + "/" + raw_image_title + "_positive_fiber_rois_c1_c2_c3.zip")
     add_results( rt, "channel 1,2,3 positive (white)", positive_c1_c2_c3, "YES")
 
 # save all results together
-save_all_rois( rm, output_dir + "all_fiber_type_rois_color-coded.zip" )
-rt.save(output_dir + "fibertyping_results.csv")
+save_all_rois( rm, output_dir + "/" + raw_image_title + "_all_fiber_type_rois_color-coded.zip" )
+rt.save(output_dir + "/" + raw_image_title + "_fibertyping_results.csv")
 
 # dress up the original image, save a overlay-png, present original to the user
 raw.show()
@@ -470,7 +467,7 @@ raw.setDisplayMode(IJ.COMPOSITE)
 enhance_contrast( raw )
 IJ.run("From ROI Manager", "") # ROIs -> overlays so they show up in the saved png
 qc_duplicate = raw.duplicate()
-IJ.saveAs(qc_duplicate, "PNG", output_dir + raw_image_title + "_fibertyping")
+IJ.saveAs(qc_duplicate, "PNG", output_dir + "/" + raw_image_title + "_fibertyping")
 qc_duplicate.close()
 wm.toFront( raw.getWindow() )
 IJ.run("Remove Overlay", "")
@@ -480,6 +477,6 @@ total_execution_time_min = (time.time() - execution_start_time) / 60.0
 IJ.log("total time in minutes: " + str(total_execution_time_min))
 IJ.log( "~~ all done ~~" )
 IJ.selectWindow("Log")
-IJ.saveAs("Text", str(output_dir + raw_image_title + "_fibertyping_Log"))
+IJ.saveAs("Text", str(output_dir + "/" + raw_image_title + "_fibertyping_Log"))
 if close_raw == True:
     raw.close()
