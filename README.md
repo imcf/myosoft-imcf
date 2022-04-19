@@ -1,5 +1,7 @@
 # Myosoft-IMCF
 
+[![DOI](https://zenodo.org/badge/483179415.svg)](https://zenodo.org/badge/latestdoi/483179415)
+
 IMCF-adaptation of Myosoft, a Fiji script that identifies muscle fibers in
 images of sections.
 
